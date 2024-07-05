@@ -203,7 +203,7 @@ jobs:
                 - --txt-owner-id=automation
                 env:
                 - name: VULTR_API_KEY
-                  value: "${{VULTR_API_KEY}}" # Enter your Vultr API Key
+                  value: "${{ secrets.VULTR_API_KEY }}" # Enter your Vultr API Key
         EOD
 
     - name: Install Nginx Ingress Controller
