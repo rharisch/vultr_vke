@@ -15,14 +15,6 @@ on:
         options:
           - deploy
           - destroy
-      tfapply:
-        description: 'Terraform Mode'
-        required: true
-        default: 'plan'
-        type: choice
-        options:
-          - plan
-          - apply
 
 jobs:
   deploy:
@@ -58,7 +50,7 @@ jobs:
       working-directory: ./terraform/cluster
 
     - name: Apply Terraform deployment
-      if: github.ref == 'refs/heads/main' && github.event.inputs.tfapply == 'apply'
+      if: github.ref == 'refs/heads/main'
       env:
         VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
       run: terraform apply -auto-approve tfplan
