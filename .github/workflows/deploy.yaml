@@ -78,8 +78,9 @@ jobs:
     - name: Setup Kubernetes Tools
       uses: yokawasa/action-setup-kube-tools@v0.11.1
       with:
-        kubectl
-        helm
+        setup-tools: |
+          kubectl
+          helm
 
     - name: Install Cert-Manager
       shell: bash
