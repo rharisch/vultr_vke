@@ -60,7 +60,7 @@ jobs:
       run: |
         mkdir -p ~/.kube
         # terraform -chdir="./terraform/cluster" output --raw vultr_kube_config | base64 -d > ~/.kube/config
-        terraform -chdir-"./terraform/cluster" output --raw vultr_kube_config
+        terraform -chdir="./terraform/cluster" output --raw vultr_kube_config
         exit 1;
 
     - name: Setup Kubernetes Tools
