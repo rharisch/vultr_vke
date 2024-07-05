@@ -72,10 +72,16 @@ jobs:
 
     - name: Extract Kube Config
       run: |
-        printf "K8S_CONFIG_B64=%s\n" $(terraform -chdir="./terraform/cluster" output --raw vultr_kube_config) >> $GITHUB_ENV
+        mkdir -p ~/.kube
+        terraform -chdir="./terraform/cluster" output --raw vultr_kube_config > ~/.kube/config
 
-    - name: Install HELM and Kubectl in runner
-      uses: mirzakhany/helm-install-action@v1
+    - name: Setup Kubernetes Tools
+      uses: yokawasa/action-setup-kube-tools@v0.11.1
+      with:
+        kubectl
+        helm
+
+      uses: wahyd4/kubectl-helm-action@master
       with:
         k8s_config: ${{ env.K8S_CONFIG_B64 }}
 
