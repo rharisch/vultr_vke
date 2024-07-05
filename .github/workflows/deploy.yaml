@@ -1,12 +1,6 @@
 name: Manage Vultr Kubernetes Engine
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       clustername:
