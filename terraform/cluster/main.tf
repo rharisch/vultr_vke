@@ -13,9 +13,9 @@ provider "vultr" {
   retry_limit = 3
 }
 
-resource "vultr_dns_domain" "dns_domain" {
-  domain = format("%s", var.organization_fqdn)
-}
+#resource "vultr_dns_domain" "dns_domain" {
+#  domain = format("%s", var.organization_fqdn)
+#}
 
 resource "vultr_kubernetes" "k8s_cluster" {
   region            = "ord"

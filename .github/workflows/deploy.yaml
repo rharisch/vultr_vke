@@ -9,6 +9,10 @@ on:
       - main
   workflow_dispatch:
     inputs:
+      clustername:
+        description: 'Cluster Name'
+        required: true
+        type: string
       action:
         description: 'Action to perform'
         required: true
@@ -55,6 +59,7 @@ jobs:
     - name: Plan Terraform deployment
       env:
         VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
+        TF_VAR_cluster_name: ${{ github.event.inputs.action }}
       run: terraform plan -out=tfplan
       working-directory: ./terraform/cluster
 
