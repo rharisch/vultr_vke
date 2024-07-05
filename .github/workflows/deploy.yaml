@@ -1,0 +1,253 @@
+name: Manage Vultr Kubernetes Engine
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'deploy'
+        type: choice
+        options:
+          - deploy
+          - destroy
+      tfapply:
+        description: 'Terraform Mode'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - apply
+
+jobs:
+  deploy:
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'deploy'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.5.2
+
+    - name: Authenticate to Vultr
+      env:
+        VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
+      run: |
+        echo $VULTR_API_KEY > ~/.vultr_token
+
+    - name: Initialize Terraform
+      env:
+        VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
+      run: terraform init
+      working-directory: ./terraform/cluster
+
+    - name: Plan Terraform deployment
+      env:
+        VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
+      run: terraform plan -out=tfplan
+      working-directory: ./terraform/cluster
+
+    - name: Apply Terraform deployment
+      if: github.ref == 'refs/heads/main' && github.event.inputs.tfapply == 'apply'
+      env:
+        VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
+      run: terraform apply -auto-approve tfplan
+      working-directory: ./terraform/cluster
+
+    - name: Extract Kube Config
+      run: |
+        printf "K8S_CONFIG_B64=%s\n" $(terraform -chdir="./terraform/cluster" output --raw vultr_kube_config) >> $GITHUB_ENV
+
+    - name: Install HELM and Kubectl in runner
+      uses: mirzakhany/helm-install-action@v1
+      with:
+        k8s_config: ${{ env.K8S_CONFIG_B64 }}
+
+    - name: Install Cert-Manager
+      shell: bash
+        run: |
+          kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.15.1/cert-manager.yaml
+          kubectl create secret generic vultr-credentials --from-literal=apiKey=${{ secrets.VULTR_API_KEY }} --namespace cert-manager
+          git clone --depth=1 https://github.com/vultr/cert-manager-webhook-vultr.git ./vultr-webhook
+          helm install --namespace cert-manager cert-manager-webhook-vultr ./vultr-webhook/deploy/cert-manager-webhook-vultr
+          cat <<EOF | oc apply -f -
+          apiVersion: cert-manager.io/v1
+          kind: ClusterIssuer
+          metadata:
+            annotations:
+              meta.helm.sh/release-name: cert-manager-webhook-vultr
+              meta.helm.sh/release-namespace: cert-manager
+            labels:
+              app.kubernetes.io/managed-by: Helm
+            name: vultr-letsencrypt-prod
+          spec:
+            acme:
+              email: ${{ secrets.admin_email }}
+              privateKeySecretRef:
+                name: vultr-letsencrypt-prod
+              server: https://acme-v02.api.letsencrypt.org/directory
+              solvers:
+              - dns01:
+                  webhook:
+                    config:
+                      apiKeySecretRef:
+                        key: apiKey
+                        name: vultr-credentials
+                    groupName: acme.vultr.com
+                    solverName: vultr
+          EOF
+          cat <<EOF | oc apply -f -
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: Role
+          metadata:
+            name: cert-manager-webhook-vultr:secret-reader
+            namespace: cert-manager
+          rules:
+          - apiGroups: [""]
+            resources: ["secrets"]
+            resourceNames: ["vultr-credentials"]
+            verbs: ["get", "watch"]
+          ---
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: RoleBinding
+          metadata:
+            name: cert-manager-webhook-vultr:secret-reader
+            namespace: cert-manager
+          roleRef:
+            apiGroup: rbac.authorization.k8s.io
+            kind: Role
+            name: cert-manager-webhook-vultr:secret-reader
+          subjects:
+            - apiGroup: ""
+              kind: ServiceAccount
+              name: cert-manager-webhook-vultr
+          EOF
+    
+    - name: Install ExternalDNS
+      shell: bash
+        run: |
+          cat <<EOF | oc apply -f -
+          apiVersion: v1
+          kind: ServiceAccount
+          metadata:
+            name: external-dns
+          ---
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRole
+          metadata:
+            name: external-dns
+          rules:
+          - apiGroups: [""]
+            resources: ["services","endpoints","pods"]
+            verbs: ["get","watch","list"]
+          - apiGroups: ["extensions","networking.k8s.io"]
+            resources: ["ingresses"]
+            verbs: ["get","watch","list"]
+          - apiGroups: [""]
+            resources: ["nodes"]
+            verbs: ["list"]
+          ---
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRoleBinding
+          metadata:
+            name: external-dns-viewer
+          roleRef:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: external-dns
+          subjects:
+          - kind: ServiceAccount
+            name: external-dns
+            namespace: default
+          ---
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: external-dns
+          spec:
+            strategy:
+              type: Recreate
+            selector:
+              matchLabels:
+                app: external-dns
+            template:
+              metadata:
+                labels:
+                  app: external-dns
+              spec:
+                serviceAccountName: external-dns
+                containers:
+                - name: external-dns
+                  image: k8s.gcr.io/external-dns/external-dns:v0.10.2
+                  args:
+                  - --source=ingress  #service is also possible
+                  - --domain-filter=example.com # (optional) limit to only example.com domains; change to match the zone created above.
+                  - --provider=vultr
+                  - --registry=txt
+                  - --txt-owner-id=automation
+                  env:
+                  - name: VULTR_API_KEY
+                    value: "${{API KEY}}" # Enter your Vultr API Key
+          EOD
+
+    - name: Install Nginx Ingress Controller
+      shell: bash
+        run: |
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo update
+          helm install ingress-nginx ingress-nginx/ingress-nginx
+
+#    - name: Deploy ArgoCD Chart
+#      shell: bash
+#        run: |
+#          helm install --upgrade --namespace argocd --create-namespace argocd argocd/argocd
+
+  destroy:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.5.2
+
+    - name: Authenticate to Vultr
+      env:
+        VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
+      run: |
+        echo $VULTR_API_KEY > ~/.vultr_token
+
+    - name: Initialize Terraform
+      env:
+        VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
+      run: terraform init
+      working-directory: ./terraform
+
+    - name: Plan Terraform destruction
+      env:
+        VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
+      run: terraform plan -destroy -out=tfdestroy
+      working-directory: ./terraform
+
+    - name: Apply Terraform destruction
+      if: github.event.inputs.tfapply == 'apply'
+      env:
+        VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
+      run: terraform apply -auto-approve tfdestroy
+      working-directory: ./terraform
+
