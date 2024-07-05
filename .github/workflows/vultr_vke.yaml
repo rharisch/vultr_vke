@@ -239,11 +239,11 @@ jobs:
         VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
         TF_VAR_cluster_name: ${{ github.event.inputs.clustername }}
       run: terraform plan -destroy -out=tfdestroy
-      working-directory: ./terraform
+      working-directory: ./terraform/cluster
 
     - name: Apply Terraform destruction
       env:
         VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
       run: terraform apply -auto-approve tfdestroy
-      working-directory: ./terraform
+      working-directory: ./terraform/cluster
 
