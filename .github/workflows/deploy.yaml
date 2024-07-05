@@ -81,10 +81,6 @@ jobs:
         kubectl
         helm
 
-      uses: wahyd4/kubectl-helm-action@master
-      with:
-        k8s_config: ${{ env.K8S_CONFIG_B64 }}
-
     - name: Install Cert-Manager
       shell: bash
       run: |
