@@ -45,7 +45,7 @@ jobs:
     - name: Plan Terraform deployment
       env:
         VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
-        TF_VAR_cluster_name: ${{ github.event.inputs.action }}
+        TF_VAR_cluster_name: ${{ github.event.inputs.clustername }}
       run: terraform plan -out=tfplan
       working-directory: ./terraform/cluster
 
