@@ -91,7 +91,7 @@ jobs:
             sleep 5
           fi
         done
-        if [[ loopcounter -gt 10 ]]; then exit 1; done
+        if [[ loopcounter -gt 10 ]]; then exit 1; fi
 
     - name: Install Cert-Manager
       shell: bash
@@ -107,7 +107,7 @@ jobs:
           echo "Waiting for webhook dependency"
           sleep 5
         done
-        if [[ $loopcounter -gt 10 ]]; then exit 1; done
+        if [[ $loopcounter -gt 10 ]]; then exit 1; fi
 
         ls -l ./vultr-webhook/deploy
         helm upgrade --install --namespace cert-manager cert-manager-webhook-vultr ./vultr-webhook/deploy/cert-manager-webhook-vultr
