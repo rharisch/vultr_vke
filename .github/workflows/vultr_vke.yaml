@@ -83,6 +83,7 @@ jobs:
         kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.15.1/cert-manager.yaml
         kubectl create secret generic vultr-credentials --from-literal=apiKey=${{ secrets.VULTR_API_KEY }} --namespace cert-manager
         git clone --depth=1 https://github.com/vultr/cert-manager-webhook-vultr.git ./vultr-webhook
+        ls -l ./vultr-webhook/deploy
         helm install --namespace cert-manager cert-manager-webhook-vultr ./vultr-webhook/deploy/cert-manager-webhook-vultr
         cat <<EOF | oc apply -f -
         apiVersion: cert-manager.io/v1
