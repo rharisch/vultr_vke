@@ -62,13 +62,13 @@ jobs:
       run: terraform apply -auto-approve tfplan
       working-directory: ./terraform/cluster
 
-    - name: Extract Kube Config
+    - name: Extract Kube Config 
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       run: |
         mkdir -p ~/.kube
-        terraform -chdir="./terraform/cluster" output --json vultr_kube_config 2>/dev/null | jq
+        terraformi-bin -chdir="./terraform/cluster" output --raw vultr_kube_config > ~/.kube/config
         exit 1
 
     - name: Setup Kubernetes Tools
