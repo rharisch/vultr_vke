@@ -269,7 +269,7 @@ jobs:
               secretName: argocd-server-tls
           https: false
         EOF
-        helm install --upgrade --namespace argocd --create-namespace argocd argocd/argocd -f ./argocd-values.yaml
+        helm upgrade --install --namespace argocd --create-namespace argocd argocd/argocd -f ./argocd-values.yaml
 
   destroy:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
