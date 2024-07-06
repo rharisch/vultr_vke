@@ -69,7 +69,6 @@ jobs:
       run: |
         mkdir -p ~/.kube
         terraform-bin -chdir="./terraform/cluster" output --raw vultr_kube_config | base64 -d > ~/.kube/config
-        exit 1
 
     - name: Setup Kubernetes Tools
       uses: yokawasa/action-setup-kube-tools@v0.11.1
