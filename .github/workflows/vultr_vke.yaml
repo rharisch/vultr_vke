@@ -272,7 +272,7 @@ jobs:
         EOF
         helm repo add argocd https://argoproj.github.io/argo-helm
         helm repo up
-        helm upgrade --install --namespace argocd --create-namespace argocd argocd/argocd -f ./argocd-values.yaml
+        helm upgrade --install --namespace argocd --create-namespace argocd argocd/argo-cd -f ./argocd-values.yaml
 
   destroy:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
