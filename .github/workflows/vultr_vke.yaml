@@ -254,11 +254,11 @@ jobs:
               group:  "cert-manager.io"
               kind: "ClusterIssuer"
               name: "vultr-letsencrypt-prod"
-        ingress:
-          enabled: true
-          annotations:
-            external-dns.alpha.kubernetes.io/hostname: argocd.${{ github.event.inputs.clustername }}.everythingkubernetes.info
-          ingressClassName: nginx
+          ingress:
+            enabled: true
+            annotations:
+              external-dns.alpha.kubernetes.io/hostname: argocd.${{ github.event.inputs.clustername }}.everythingkubernetes.info
+            ingressClassName: nginx
         EOF
         helm repo add argocd https://argoproj.github.io/argo-helm
         helm repo up
