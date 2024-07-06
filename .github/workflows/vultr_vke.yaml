@@ -243,32 +243,22 @@ jobs:
       shell: bash
       run: |
         cat <<EOF >./argocd-values.yaml
-        configs:
-          cm:
-            url: "https://argocd.${{ github.event.inputs.clustername }}.everythingkubernetes.info"
-          params:
-            server.insecure: "true"
+        global:
+          domain: argocd.${{ github.event.inputs.clustername }}.everythingkubernetes.info
         server:
           certificate:
             enabled: true
             secretName: argocd-server-tls
             domain: argocd.${{ github.event.inputs.clustername }}.everythingkubernetes.info
-          issuer:
-            group:  "cert-manager.io"
-            kind: "ClusterIssuer"
-            name: "vultr-letsencrypt-prod"
+            issuer:
+              group:  "cert-manager.io"
+              kind: "ClusterIssuer"
+              name: "vultr-letsencrypt-prod"
         ingress:
           enabled: true
           annotations:
             external-dns.alpha.kubernetes.io/hostname: argocd.${{ github.event.inputs.clustername }}.everythingkubernetes.info
           ingressClassName: nginx
-          hosts:
-            - argocd.${{ github.event.inputs.clustername }}.everythingkubernetes.info
-          tls:
-            - hosts:
-              - argocd.${{ github.event.inputs.clustername }}.everythingkubernetes.info
-              secretName: argocd-server-tls
-          https: false
         EOF
         helm repo add argocd https://argoproj.github.io/argo-helm
         helm repo up
