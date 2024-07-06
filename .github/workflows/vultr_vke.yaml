@@ -245,14 +245,14 @@ jobs:
         cat <<EOF >./argocd-values.yaml
         configs:
           cm:
-            url: "https://argocd.${{ github.event.inputs.clustername }}/everythingkubernetes.info"
+            url: "https://argocd.${{ github.event.inputs.clustername }}.everythingkubernetes.info"
           params:
             server.insecure: "true"
         server:
           certificate:
             enabled: true
             secretName: argocd-server-tls
-            domain: argocd.${{ github.event.inputs.clustername }}/everythingkubernetes.info
+            domain: argocd.${{ github.event.inputs.clustername }}.everythingkubernetes.info
           issuer:
             group:  "cert-manager.io"
             kind: "ClusterIssuer"
@@ -260,13 +260,13 @@ jobs:
         ingress:
           enabled: true
           annotations:
-            external-dns.alpha.kubernetes.io/hostname: argocd.${{ github.event.inputs.clustername }}/everythingkubernetes.info
+            external-dns.alpha.kubernetes.io/hostname: argocd.${{ github.event.inputs.clustername }}.everythingkubernetes.info
           ingressClassName: nginx
           hosts:
-            - argocd.${{ github.event.inputs.clustername }}/everythingkubernetes.info
+            - argocd.${{ github.event.inputs.clustername }}.everythingkubernetes.info
           tls:
             - hosts:
-              - argocd.${{ github.event.inputs.clustername }}/everythingkubernetes.info
+              - argocd.${{ github.event.inputs.clustername }}.everythingkubernetes.info
               secretName: argocd-server-tls
           https: false
         EOF
