@@ -76,6 +76,7 @@ jobs:
       run: |
         mkdir -p ~/.kube
         terraform-bin -chdir="./terraform/cluster" output --raw vultr_kube_config | base64 -d > ~/.kube/config
+        chown 0600 ~/.kube/config
 
     - name: Wait for API to become available
       shell: bash
