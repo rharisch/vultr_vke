@@ -223,7 +223,7 @@ jobs:
                 image: k8s.gcr.io/external-dns/external-dns:v0.10.2
                 args:
                 - --source=ingress  #service is also possible
-                - --domain-filter=${{ github.event.inputs.clustername }}.everythingkubernetes.info
+                - --domain-filter=${{ env.EXTERNAL_DNS_DOMAIN_NAME }}
                 - --provider=vultr
                 - --registry=txt
                 - --txt-owner-id=${{ github.event.inputs.clustername }}-automation
@@ -244,12 +244,12 @@ jobs:
       run: |
         cat <<EOF >./argocd-values.yaml
         global:
-          domain: argocd.${{ github.event.inputs.clustername }}.everythingkubernetes.info
+          domain: argocd.${{ github.event.inputs.clustername }}.${{ env.EXTERNAL_DNS_DOMAIN_NAME }}
         server:
           certificate:
             enabled: true
             secretName: argocd-server-tls
-            domain: argocd.${{ github.event.inputs.clustername }}.everythingkubernetes.info
+            domain: argocd.${{ github.event.inputs.clustername }}.${{ env.EXTERNAL_DNS_DOMAIN_NAME }}
             issuer:
               group:  "cert-manager.io"
               kind: "ClusterIssuer"
@@ -259,7 +259,7 @@ jobs:
             annotations:
               nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
               nginx.ingress.kubernetes.io/ssl-passthrough: "true"
-              external-dns.alpha.kubernetes.io/hostname: argocd.${{ github.event.inputs.clustername }}.everythingkubernetes.info
+              external-dns.alpha.kubernetes.io/hostname: argocd.${{ github.event.inputs.clustername }}.${{ env.EXTERNAL_DNS_DOMAIN_NAME }}
 
             ingressClassName: nginx
         EOF
@@ -280,11 +280,21 @@ jobs:
       with:
         terraform_version: 1.5.2
 
+    - name: Install vultr-cli
+      uses: techknowlogick/action-vultr@v2
+      with:
+        token: ${{ secrets.VULTR_API_KEY }}
+
     - name: Authenticate to Vultr
       env:
         VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
       run: |
         echo $VULTR_API_KEY > ~/.vultr_token
+
+    - name: Get Kubernetes Instance ID
+      shell: bash
+      run: |
+        vultr-cli kubernetes list -o json | jq -r '.vke_clusters[] | select(.label="${{ github.event.inputs.clustername }}") | .id'
 
     - name: Initialize Terraform
       env:
