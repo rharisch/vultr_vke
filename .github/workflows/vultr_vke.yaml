@@ -68,7 +68,7 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       run: |
         mkdir -p ~/.kube
-        terraform-bin -chdir="./terraform/cluster" output --raw vultr_kube_config > ~/.kube/config
+        terraform-bin -chdir="./terraform/cluster" output --raw vultr_kube_config | base64 -d > ~/.kube/config
         exit 1
 
     - name: Setup Kubernetes Tools
