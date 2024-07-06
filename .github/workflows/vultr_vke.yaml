@@ -83,6 +83,14 @@ jobs:
         kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.15.1/cert-manager.yaml
         kubectl create secret generic vultr-credentials --from-literal=apiKey=${{ secrets.VULTR_API_KEY }} --namespace cert-manager || echo "Secret already exists"
         git clone --depth=1 https://github.com/vultr/cert-manager-webhook-vultr.git ./vultr-webhook
+
+        # Avoid a race condition where vultr webhook tries to connect before cert-manager-webhook is ready and fails install process
+        loopcounter=0
+        until [[ "$(kubectl get deployments/cert-manager-webhook -n cert-manager -o jsonpath='{.status.readyReplicas}')" -gt 0 && loopcounter -lt 10 ]]; do
+          echo "Waiting for webhook dependency"
+          ((loopcounter++))
+        done
+
         ls -l ./vultr-webhook/deploy
         helm upgrade --install --namespace cert-manager cert-manager-webhook-vultr ./vultr-webhook/deploy/cert-manager-webhook-vultr
         cat <<EOF | oc apply -f -
@@ -203,7 +211,7 @@ jobs:
                 env:
                 - name: VULTR_API_KEY
                   value: "${{ secrets.VULTR_API_KEY }}" # Enter your Vultr API Key
-        EOD
+        EOF
 
     - name: Install Nginx Ingress Controller
       shell: bash
