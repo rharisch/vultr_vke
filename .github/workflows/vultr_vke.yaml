@@ -30,6 +30,13 @@ jobs:
       with:
         terraform_version: 1.5.2
 
+    - name: Setup Kubernetes Tools
+      uses: yokawasa/action-setup-kube-tools@v0.11.1
+      with:
+        setup-tools: |
+          kubectl
+          helm
+
     - name: Authenticate to Vultr
       env:
         VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
@@ -70,12 +77,21 @@ jobs:
         mkdir -p ~/.kube
         terraform-bin -chdir="./terraform/cluster" output --raw vultr_kube_config | base64 -d > ~/.kube/config
 
-    - name: Setup Kubernetes Tools
-      uses: yokawasa/action-setup-kube-tools@v0.11.1
-      with:
-        setup-tools: |
-          kubectl
-          helm
+    - name: Wait for API to become available
+      shell: bash
+      run: |
+        loopcounter=0
+        while [[ $loopcounter -le 10 ]]; do
+          kubectl get nodes >/dev/null
+          if [[ $? -eq 0 ]]; then
+            break
+          else
+            ((loopcounter++))
+            echo "Waiting for Kubernetes API to become available"
+            sleep 5
+          fi
+        done
+        if [[ loopcounter -gt 10 ]]; then exit 1; done
 
     - name: Install Cert-Manager
       shell: bash
@@ -86,10 +102,12 @@ jobs:
 
         # Avoid a race condition where vultr webhook tries to connect before cert-manager-webhook is ready and fails install process
         loopcounter=0
-        until [[ "$(kubectl get deployments/cert-manager-webhook -n cert-manager -o jsonpath='{.status.readyReplicas}')" -gt 0 && loopcounter -lt 10 ]]; do
-          echo "Waiting for webhook dependency"
+        until [[ $(kubectl get deployments/cert-manager-webhook -n cert-manager -o jsonpath='{.status.readyReplicas}') -gt 0 && $loopcounter -lt 10 ]]; do
           ((loopcounter++))
+          echo "Waiting for webhook dependency"
+          sleep 5
         done
+        if [[ $loopcounter -gt 10 ]]; then exit 1; done
 
         ls -l ./vultr-webhook/deploy
         helm upgrade --install --namespace cert-manager cert-manager-webhook-vultr ./vultr-webhook/deploy/cert-manager-webhook-vultr
