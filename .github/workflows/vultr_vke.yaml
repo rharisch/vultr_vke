@@ -40,7 +40,7 @@ jobs:
       env:
         VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWX_SECRET_ACCESS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       run: terraform init
       working-directory: ./terraform/cluster
 
