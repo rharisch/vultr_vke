@@ -291,10 +291,14 @@ jobs:
       run: |
         echo $VULTR_API_KEY > ~/.vultr_token
 
-    - name: Get Kubernetes Instance ID
+    - name: Get Object IDs for Kubernetes resources to destroy after Terraform
+      env:
+        CLUSTERNAME: "${{ github.event.inputs.clustername }}"
       shell: bash
       run: |
-        vultr-cli kubernetes list -o json | jq -r '.vke_clusters[] | select(.label="${{ github.event.inputs.clustername }}") | .id'
+        KUBE_INSTANCE_ID=$(vultr-cli kubernetes list -o json | jq -r --arg CLUSTERNAME "${CLUSTERNAME}" '.vke_clusters[] | select(.label=$CLUSTERNAME) | .id')
+        VPC_ID=$(vultr-cli vpc list -o json | jq  --arg KUBE_INSTANCE_ID "${KUBE_INSTANCE_ID}" -r '.vpcs[] | select(.description | test($KUBE_INSTANCE_ID)) | .id')
+        echo "VPD_ID=${VPC_ID}" >> $GITHUB_ENV
 
     - name: Initialize Terraform
       env:
