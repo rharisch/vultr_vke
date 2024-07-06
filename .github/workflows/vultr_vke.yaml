@@ -39,13 +39,13 @@ jobs:
     - name: Initialize Terraform
       env:
         VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
+        AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+        VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
       run: terraform init
       working-directory: ./terraform/cluster
 
     - name: Plan Terraform deployment
       env:
-        VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
-        AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWX_SECRET_ACCESS_KEY }}
         TF_VAR_cluster_name: ${{ github.event.inputs.clustername }}
       run: terraform plan -out=tfplan
