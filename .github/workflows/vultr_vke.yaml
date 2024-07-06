@@ -254,7 +254,7 @@ jobs:
             secretName: argocd-server-tls
             domain: argocd.${{ github.event.inputs.clustername }}/everythingkubernetes.info
           issuer:
-            group:  "acme.vultr.com"
+            group:  "cert-manager.io"
             kind: "ClusterIssuer"
             name: "vultr-letsencrypt-prod"
         ingress:
