@@ -92,7 +92,7 @@ jobs:
             break
           fi
         done
-        if [[ loopcounter -gt 10 ]]; then exit 1; fi
+        if [[ $loopcounter -gt 10 ]]; then exit 1; fi
 
     - name: Install Cert-Manager
       shell: bash
