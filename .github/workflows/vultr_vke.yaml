@@ -78,6 +78,11 @@ jobs:
         terraform-bin -chdir="./terraform/cluster" output --raw vultr_kube_config | base64 -d > ~/.kube/config
         chmod 0600 ~/.kube/config
 
+    - name: Exit Workflow
+      shell: bash
+      run:
+        false
+
     - name: Wait for API to become available
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
