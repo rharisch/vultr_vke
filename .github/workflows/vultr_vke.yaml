@@ -85,9 +85,10 @@ jobs:
         VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
         VKE_CLUSTER_ID: ${{ env.VKE_CLUSTER_ID }}
       run: |
+        curl --no-progress-meter -s -H "Authorization: Bearer ${VULTR_API_KEY}" "https://api.vultr.com/v2/kubernetes/clusters/${VKE_CLUSTER_ID}"
         CONTROL_PLANE_NODE_ID=$(curl --no-progress-meter -s -H "Authorization: Bearer ${VULTR_API_KEY}" "https://api.vultr.com/v2/kubernetes/clusters/${VKE_CLUSTER_ID}" | jq -r '.vke_cluster.node_pools[].nodes[].id')
         loopcounter=0
-        until [[ "$(curl --no-progress-meter -s -H "Authorization: Bearer ${VULTR_API_KEY}" "http://api.vultr.com/v2/instances/${CONTROL_PLANE_NODE_ID}" | jq -r '.instance.server_status')" -eq "ok" || $loopcounter -gt 20 ]]; do
+        until [[ "$(curl --no-progress-meter -s -H "Authorization: Bearer ${VULTR_API_KEY}" "http://api.vultr.com/v2/instances/${CONTROL_PLANE_NODE_ID}" | jq -r '.instance.server_status')" == "ok" || $loopcounter -gt 20 ]]; do
           ((loopcounter++))
           echo "Waiting for controlplane node to finish booting"
           sleep 60
