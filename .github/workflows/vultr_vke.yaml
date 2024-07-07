@@ -109,6 +109,10 @@ jobs:
         git clone --depth=1 https://github.com/vultr/cert-manager-webhook-vultr.git ./vultr-webhook
 
         # Avoid a race condition where vultr webhook tries to connect before cert-manager-webhook is ready and fails install process
+
+        echo "Printing condition before used in until statement"
+        kubectl get deployments/cert-manager.webhook -n cert-manager -o jsonpath='{.status.readyReplicas}'
+        echo "Entering loop"
         loopcounter=0
         until [[ $(kubectl get deployments/cert-manager-webhook -n cert-manager -o jsonpath='{.status.readyReplicas}') -gt 0 || $loopcounter -gt 10 ]]; do
           ((loopcounter++))
