@@ -79,20 +79,13 @@ jobs:
         chmod 0600 ~/.kube/config
 
     - name: Wait for API to become available
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       shell: bash
       run: |
-        loopcounter=0
-        while [[ $loopcounter -le 10 ]]; do
-          API_READY=$(kubectl get nodes >/dev/null || echo "not ready" && true)
-          if [[ "${API_READY}" == "not ready" ]]; then
-            ((loopcounter++))
-            echo "Waiting for Kubernetes API to become available"
-            sleep 5
-          else
-            break
-          fi
-        done
-        if [[ $loopcounter -gt 10 ]]; then exit 1; fi
+        ENDPOINT=$(terraform-bin -chdir="./terraform/cluster" output --raw vultr_vke_endpoint)
+        curl -k --retry-delay 10 --retry-all-errors --retry 12 "${ENDPOINT}/healthz"
 
     - name: Install Cert-Manager
       shell: bash
