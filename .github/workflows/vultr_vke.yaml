@@ -85,7 +85,7 @@ jobs:
       shell: bash
       run: |
         ENDPOINT=$(terraform-bin -chdir="./terraform/cluster" output --raw vultr_vke_endpoint)
-        curl -k --retry-delay 10 --retry-all-errors --retry 12 "${ENDPOINT}/healthz"
+        curl -k --retry-delay 10 --retry-all-errors --retry 12 "https://${ENDPOINT}:6443/healthz"
 
     - name: Install Cert-Manager
       shell: bash
