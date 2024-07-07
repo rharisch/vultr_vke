@@ -83,7 +83,7 @@ jobs:
       run: |
         loopcounter=0
         while [[ $loopcounter -le 10 ]]; do
-          API_READY=$(kubectl get nodes >/dev/null || echo "not ready")
+          API_READY=$(kubectl get nodes >/dev/null || echo "not ready" && true)
           if [[ "${API_READY}" == "not ready" ]]; then
             ((loopcounter++))
             echo "Waiting for Kubernetes API to become available"
