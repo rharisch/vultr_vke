@@ -90,6 +90,7 @@ jobs:
         until [[ "$(curl --no-progress-meter -s -H "Authorization: Bearer ${VULTR_API_KEY}" "http://api.vultr.com/v2/instances/${CONTROL_PLANE_NODE_ID}" | jq -r '.instance.server_status')" -eq "ok" || $loopcounter -gt 20 ]]; do
           ((loopcounter++))
           echo "Waiting for controlplane node to finish booting"
+          sleep 60
         done
         if [[ $loopcounter -gt 10 ]]; then exit 1; fi
 
