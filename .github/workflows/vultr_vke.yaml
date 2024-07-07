@@ -69,7 +69,7 @@ jobs:
       run: terraform apply -auto-approve tfplan
       working-directory: ./terraform/cluster
 
-    - name: Extract Kube Config 
+    - name: Extract Output Variables from Terraform
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -77,16 +77,28 @@ jobs:
         mkdir -p ~/.kube
         terraform-bin -chdir="./terraform/cluster" output --raw vultr_kube_config | base64 -d > ~/.kube/config
         chmod 0600 ~/.kube/config
+        echo "VKE_CLUSTER_ID=$(terraform-bin -chdir="./terraform/cluster" output --raw vultr_vke_cluster_id)" >> $GITHUB_ENV
+        echo "VKE_ENDPOINT=$(terraform-bin -chdir="./terraform/cluster" output --raw vultr_vke_endpoint)" >> $GITHUB_ENV
+
+    - name: Wait for Control plane node to finish booting
+      env:
+        VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
+        VKE_CLUSTER_ID: ${{ env.VKE_CLUSTER_ID }}
+      run: |
+        CONTROL_PLANE_NODE_ID=$(curl --no-progress-meter -s -H "Authorization: Bearer ${VULTR_API_KEY}" "https://api.vultr.com/v2/kubernetes/clusters/${VKE_CLUSTER_ID}" | jq -r '.vke_cluster.node_pools[].nodes[].id')
+        loopcounter=0
+        until [[ "$(curl --no-progress-meter -s -H "Authorization: Bearer ${VULTR_API_KEY}" "http://api.vultr.com/v2/instances/${CONTROL_PLANE_NODE_ID}" | jq -r '.instance.server_status')" -eq "ok" || $loopcounter -gt 20 ]]; do
+          ((loopcounter++))
+          echo "Waiting for controlplane node to finish booting"
+        done
+        if [[ $loopcounter -gt 10 ]]; then exit 1; fi
 
     - name: Wait for API to become available
       env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        VKE_ENDPOINT: "https://${{ env.VKE_ENDPOINT }}:6443/healthz"
       shell: bash
       run: |
-        sleep 5
-        ENDPOINT=$(terraform-bin -chdir="./terraform/cluster" output --raw vultr_vke_endpoint)
-        curl -k --retry 10 --retry-delay 60 --retry-all-errors "https://${ENDPOINT}:6443/healthz"
+        curl -k --retry 10 --retry-delay 60 --retry-all-errors "${VKE_ENDPOINT}"
 
     - name: Install Cert-Manager
       shell: bash
@@ -97,7 +109,7 @@ jobs:
 
         # Avoid a race condition where vultr webhook tries to connect before cert-manager-webhook is ready and fails install process
         loopcounter=0
-        until [[ $(kubectl get deployments/cert-manager-webhook -n cert-manager -o jsonpath='{.status.readyReplicas}') -gt 0 && $loopcounter -lt 10 ]]; do
+        until [[ $(kubectl get deployments/cert-manager-webhook -n cert-manager -o jsonpath='{.status.readyReplicas}') -gt 0 || $loopcounter -gt 10 ]]; do
           ((loopcounter++))
           echo "Waiting for webhook dependency"
           sleep 5
