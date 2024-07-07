@@ -81,18 +81,16 @@ jobs:
         echo "VKE_ENDPOINT=$(terraform-bin -chdir="./terraform/cluster" output --raw vultr_vke_endpoint)" >> $GITHUB_ENV
 
     - name: Wait for Control plane node to finish booting
+      shell: bash
       env:
         VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
         VKE_CLUSTER_ID: ${{ env.VKE_CLUSTER_ID }}
       run: |
-        echo "Determine control plane id"
-        curl --no-progress-meter -s -H "Authorization: Bearer ${VULTR_API_KEY}" "https://api.vultr.com/v2/kubernetes/clusters/${VKE_CLUSTER_ID}" | jq -r '.vke_cluster.node_pools[].nodes[].id'
         CONTROL_PLANE_NODE_ID=$(curl --no-progress-meter -s -H "Authorization: Bearer ${VULTR_API_KEY}" "https://api.vultr.com/v2/kubernetes/clusters/${VKE_CLUSTER_ID}" | jq -r '.vke_cluster.node_pools[].nodes[].id')
         loopcounter=0
-        echo "Entering loop"
         until [[ "$(curl --no-progress-meter -s -H "Authorization: Bearer ${VULTR_API_KEY}" "https://api.vultr.com/v2/instances/${CONTROL_PLANE_NODE_ID}" | jq -r '.instance.server_status')" == "ok" || $loopcounter -gt 20 ]]; do
-          ((loopcounter++))
           echo "Waiting for controlplane node to finish booting"
+          ((loopcounter++))
           sleep 60
         done
         if [[ $loopcounter -gt 10 ]]; then exit 1; fi
