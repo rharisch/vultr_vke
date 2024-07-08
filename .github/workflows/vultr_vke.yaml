@@ -90,7 +90,7 @@ jobs:
         loopcounter=0
         until [[ "$(curl --no-progress-meter -s -H "Authorization: Bearer ${VULTR_API_KEY}" "https://api.vultr.com/v2/instances/${CONTROL_PLANE_NODE_ID}" | jq -r '.instance.server_status')" == "ok" || $loopcounter -gt 20 ]]; do
           echo "Waiting for controlplane node to finish booting"
-          ((loopcounter++))
+          loopcounter=$((loopcounter + 1))
           sleep 60
         done
         if [[ $loopcounter -gt 10 ]]; then exit 1; fi
@@ -116,8 +116,8 @@ jobs:
         echo "Entering loop"
         loopcounter=0
         until [[ $(kubectl get deployments/cert-manager-webhook -n cert-manager -o jsonpath='{.status.readyReplicas}') -gt 0 || $loopcounter -gt 10 ]]; do
-          ((loopcounter++))
           echo "Waiting for webhook dependency"
+          loopcounter=$((loopcounter + 1))
           sleep 5
         done
         if [[ $loopcounter -gt 10 ]]; then exit 1; fi
