@@ -1,5 +1,8 @@
 # vultr_vke
 This repository deploys a Vultr Kubernetes Engine (VKE) using Terraform, deploys and configures Cert-Manager, External-DNS, Nginx-ingress and ArgoCD.
+![Architecture Diagram](png/architecture.png)
+
+
 ## Requirements
 Github Actions is used to orchestrate the process.  The following GitHub secrets and variables are referenced in the workflow:
 |Secret Name|Purpose|
