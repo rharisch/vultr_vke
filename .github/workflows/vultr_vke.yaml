@@ -265,7 +265,7 @@ jobs:
             issuer:
               group:  "cert-manager.io"
               kind: "ClusterIssuer"
-              name: "vultr-letsencrypt-staging"
+              name: "vultr-letsencrypt-prod"
           ingress:
             enabled: true
             annotations:
